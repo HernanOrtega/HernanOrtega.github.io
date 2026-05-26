@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Funcional con jQuery</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .calculadora-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        .campo {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+
+        input:focus, select:focus {
+            border-color: #764ba2;
+            outline: none;
+        }
+
+        .botones {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+        }
+
+        .btn-calcular {
+            background: #764ba2;
+            color: white;
+        }
+
+        .btn-calcular:hover {
+            background: #5a3a7e;
+        }
+
+        .btn-limpiar {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-limpiar:hover {
+            background: #ee5a5a;
+        }
+
+        .resultado {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            border-left: 5px solid #764ba2;
+        }
+
+        .resultado h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+        }
+
+        .resultado p {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            color: #764ba2;
+        }
+
+        .error {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .historial {
+            margin-top: 25px;
+            border-top: 2px solid #eee;
+            padding-top: 15px;
+        }
+
+        .historial h3 {
+            text-align: center;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .historial-lista {
+            list-style: none;
+            padding: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .historial-lista li {
+            background: #f8f9fa;
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            border-left: 3px solid #764ba2;
+        }
+
+        .vacio {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="calculadora-container">
+        <h1>🧮 Calculadora Funcional</h1>
+
+        <!-- Campos de entrada -->
+        <div class="campo">
+            <label>🔢 Número 1:</label>
+            <input type="number" id="num1" placeholder="Ej: 10.5" step="any">
+        </div>
+
+        <div class="campo">
+            <label>🔢 Número 2:</label>
+            <input type="number" id="num2" placeholder="Ej: 5.2" step="any">
+        </div>
+
+        <div class="campo">
+            <label>⚙️ Operación:</label>
+            <select id="operacion">
+                <option value="suma">➕ Suma</option>
+                <option value="resta">➖ Resta</option>
+                <option value="multiplicacion">✖️ Multiplicación</option>
+                <option value="division">➗ División</option>
+            </select>
+        </div>
+
+        <!-- Botones -->
+        <div class="botones">
+            <button class="btn-calcular" id="calcularBtn">Calcular</button>
+            <button class="btn-limpiar" id="limpiarBtn">Limpiar</button>
+        </div>
+
+        <!-- Resultado -->
+        <div class="resultado">
+            <h3>📊 Resultado:</h3>
+            <p id="resultadoTexto">---</p>
+        </div>
+
+        <!-- Historial -->
+        <div class="historial">
+            <h3>📜 Historial (últimas 5)</h3>
+            <ul class="historial-lista" id="historialLista">
+                <li class="vacio">No hay operaciones aún</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Esperar a que el DOM esté completamente cargado (estilo jQuery ready)
+        $(document).ready(function() {
+            
+            // Array para guardar el historial (máximo 5)
+            let historial = [];
+
+            // Función para actualizar la vista del historial usando jQuery
+            function actualizarHistorial() {
+                const $lista = $('#historialLista');
+                $lista.empty(); // Limpiar lista actual
+                
+                if (historial.length === 0) {
+                    $lista.html('<li class="vacio">No hay operaciones aún</li>');
+                    return;
+                }
+                
+                // Mostrar historial (del más reciente al más antiguo)
+                // Recorremos desde el último índice hasta el primero
+                for (let i = historial.length - 1; i >= 0; i--) {
+                    const $li = $('<li></li>').text(historial[i]);
+                    $lista.append($li);
+                }
+            }
+
+            // Función para agregar operación al historial
+            function agregarAlHistorial(operacionTexto) {
+                historial.push(operacionTexto);
+                // Mantener solo las últimas 5
+                if (historial.length > 5) {
+                    historial.shift();
+                }
+                actualizarHistorial();
+            }
+
+            // Función principal para calcular (versión jQuery)
+            function calcular() {
+                // Obtener valores con jQuery .val()
+                const valor1 = $('#num1').val();
+                const valor2 = $('#num2').val();
+                const operacion = $('#operacion').val();
+                const $resultadoElemento = $('#resultadoTexto');
+                
+                // Validar campos vacíos
+                if (valor1 === '' || valor2 === '') {
+                    $resultadoElemento.html('❌ Por favor, ingresa ambos números');
+                    return;
+                }
+                
+                // Convertir a números (permite decimales con parseFloat)
+                const num1 = parseFloat(valor1);
+                const num2 = parseFloat(valor2);
+                
+                // Validar que sean números válidos
+                if (isNaN(num1) || isNaN(num2)) {
+                    $resultadoElemento.html('❌ Ingresa números válidos');
+                    return;
+                }
+                
+                let resultado;
+                let operacionSimbolo;
+                let operacionCompleta;
+                
+                // Realizar operación según selección
+                switch(operacion) {
+                    case 'suma':
+                        resultado = num1 + num2;
+                        operacionSimbolo = '+';
+                        break;
+                    case 'resta':
+                        resultado = num1 - num2;
+                        operacionSimbolo = '-';
+                        break;
+                    case 'multiplicacion':
+                        resultado = num1 * num2;
+                        operacionSimbolo = '×';
+                        break;
+                    case 'division':
+                        // Validar división por cero
+                        if (num2 === 0) {
+                            $resultadoElemento.html('⚠️ ERROR: No se puede dividir por cero');
+                            return;
+                        }
+                        resultado = num1 / num2;
+                        operacionSimbolo = '÷';
+                        break;
+                    default:
+                        $resultadoElemento.html('❌ Operación no válida');
+                        return;
+                }
+                
+                // Redondear a 2 decimales (Nivel 2 - permite decimales y toFixed)
+                const resultadoRedondeado = resultado.toFixed(2);
+                
+                // Mostrar resultado
+                $resultadoElemento.html(`${num1} ${operacionSimbolo} ${num2} = ${resultadoRedondeado}`);
+                
+                // Agregar al historial (Nivel 3)
+                operacionCompleta = `${num1} ${operacionSimbolo} ${num2} = ${resultadoRedondeado}`;
+                agregarAlHistorial(operacionCompleta);
+            }
+            
+            // Función para limpiar campos y resultado (Nivel 1) - No limpia historial
+            function limpiar() {
+                $('#num1').val('');
+                $('#num2').val('');
+                $('#operacion').val('suma');
+                $('#resultadoTexto').html('---');
+                // El historial se mantiene intacto (según comportamiento original)
+                // Si en un futuro se desea limpiar historial, se descomentarían estas líneas:
+                // historial = [];
+                // actualizarHistorial();
+            }
+            
+            // Asignar eventos con jQuery
+            $('#calcularBtn').on('click', calcular);
+            $('#limpiarBtn').on('click', limpiar);
+            
+            // Permitir calcular presionando Enter en los inputs (usando jQuery)
+            $('input').on('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    calcular();
+                }
+            });
+            
+        }); // fin de document ready
+    </script>
+</body>
+</html>
